@@ -171,48 +171,82 @@ class _GardenDashboard extends StatelessWidget {
                 ],
               ),
             ),
-            //drop-down menu to filter habits
+            //drop-down menu to filter habits and add habit button
             const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              initialValue: 'All Habits',
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: const Color(0xFFF3EFE6),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: 'All Habits',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF3EFE6),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'All Habits',
+                        child: Text('All Habits'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Favorites',
+                        child: Text('Favorites'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Health',
+                        child: Text('Health'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Personal Growth',
+                        child: Text('Personal Growth'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Productivity',
+                        child: Text('Productivity'),
+                      ),
+                    ],
+                    onChanged: (String? value) {
+                    },
+                  ),
                 ),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'All Habits',
-                  child: Text('All Habits'),
-                ),
-                DropdownMenuItem(
-                  value: 'Favorites',
-                  child: Text('Favorites'),
-                ),
-                DropdownMenuItem(
-                  value: 'Health',
-                  child: Text('Health'),
-                ),
-                DropdownMenuItem(
-                  value: 'Personal Growth',
-                  child: Text('Personal Growth'),
-                ),
-                DropdownMenuItem(
-                  value: 'Productivity',
-                  child: Text('Productivity'),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // Habit creation screen will be connected later.
+                    },
+                    icon: const Icon(Icons.add, size: 20),
+                    label: const Text(
+                      'Add Habit',
+                      style: TextStyle(fontSize:18),
+                      ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF547653),
+                      foregroundColor: const Color(0xFFF3EFE6),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
                 ),
               ],
-              onChanged: (String? value) {
-                // Category selection will be connected to habits later.
-              },
             ),
-
           ],
         ),
       ),
-
     );
   }
 }
