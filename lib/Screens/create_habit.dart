@@ -1,8 +1,8 @@
 
 import 'package:flutter/material.dart';
 
-class HabitDetailScreen extends StatelessWidget {
-  const HabitDetailScreen({super.key});
+class CreateHabitScreen extends StatelessWidget {
+  const CreateHabitScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

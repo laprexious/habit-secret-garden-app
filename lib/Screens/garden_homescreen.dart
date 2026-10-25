@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
+import 'create_habit.dart';
 
 class GardenHomeScreen extends StatefulWidget {
   const GardenHomeScreen({super.key});
@@ -13,17 +14,22 @@ class GardenHomeScreen extends StatefulWidget {
 class _GardenHomeScreenState extends State<GardenHomeScreen> {
   // Tracks which bottom navigation tab is selected.
   int _selectedIndex = 0;
-  //Three main selection of widgets for app (on bottom nav bar)
-  final List<Widget> _screens = const [
-    _GardenDashboard(),
-    HistoryScreen(),
-    SettingsScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      _GardenDashboard(
+        onSettingsPressed: () {
+          setState(() {
+            _selectedIndex = 2;
+          });
+        },
+      ),
+      const HistoryScreen(),
+      const SettingsScreen(),
+    ];
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: screens[_selectedIndex],
       // Navigation bar to navigate between screens
       bottomNavigationBar: NavigationBar(
         indicatorColor: const Color.fromARGB(255, 218, 214, 206),
@@ -93,7 +99,11 @@ class _GardenHomeScreenState extends State<GardenHomeScreen> {
 
 //main dashboard (display)
 class _GardenDashboard extends StatelessWidget {
-  const _GardenDashboard();
+  final VoidCallback onSettingsPressed;
+
+  const _GardenDashboard({
+    required this.onSettingsPressed,
+  });
   //settings button on top right corner
   @override
   Widget build(BuildContext context) {
@@ -128,8 +138,7 @@ class _GardenDashboard extends StatelessWidget {
               fit: BoxFit.contain,
             ),
             tooltip: 'Settings',
-            onPressed: () {
-            },
+            onPressed: onSettingsPressed,
           ),
         ],
       ),
@@ -236,7 +245,12 @@ class _GardenDashboard extends StatelessWidget {
                   flex: 2,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // Habit creation screen will be connected later.
+                     Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreateHabitScreen(),
+                      ),
+                    ); 
                     },
                     icon: const Icon(Icons.add, size: 20),
                     label: const Text(
@@ -296,7 +310,12 @@ class _GardenDashboard extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Habit creation screen will be connected later.
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateHabitScreen(),
+                          ),
+                        );
                       },
                       icon: const Icon(Icons.add, size: 24),
                       label: const Text(
