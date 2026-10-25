@@ -97,28 +97,38 @@ class _GardenDashboard extends StatelessWidget {
   //settings button on top right corner
   @override
   Widget build(BuildContext context) {
+    const bool hasHabits = false;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFFF3EFE6),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(4),
           child: Image.asset(
             'assets/images/app-icon.png',
+            width: 60,
+            height: 60,
+            fit: BoxFit.contain,
           ),
         ),
         title: const Text('Habit Secret Garden'),
+        //special code for settings icon sizing**
         actions: [
           IconButton(
+            constraints: const BoxConstraints(
+              minWidth: 64,
+              minHeight: 64,
+            ),
+            padding: const EdgeInsets.all(4),
             icon: Image.asset(
               'assets/images/settings-icon.png',
-              width: 56,
-              height: 56,
+              width: 48,
+              height: 48,
+              fit: BoxFit.contain,
             ),
             tooltip: 'Settings',
             onPressed: () {
-              // Settings navigation will be connected next.
             },
           ),
         ],
@@ -172,9 +182,10 @@ class _GardenDashboard extends StatelessWidget {
               ),
             ),
             //drop-down menu to filter habits and add habit button
-            const SizedBox(height: 20),
-            Row(
-              children: [
+            if (hasHabits) ...[
+              const SizedBox(height: 20),
+              Row(
+                children: [
                 Expanded(
                   flex: 3,
                   child: DropdownButtonFormField<String>(
@@ -244,9 +255,74 @@ class _GardenDashboard extends StatelessWidget {
                 ),
               ],
             ),
+            ],
+            // EMPTY SCREEN STATE: NO HABITS PLANTED YET!
+            const SizedBox(height: 20),
+            Expanded(
+              child: Column(
+                children: [
+                  const Spacer(),
+
+                  Image.asset(
+                    'assets/images/empty-garden.png',
+                    width: 260,
+                    height: 220,
+                    fit: BoxFit.contain,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Your garden is empty!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  const Text(
+                    'Add your first habit to start growing your garden.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                    ),
+                  ),
+
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // Habit creation screen will be connected later.
+                      },
+                      icon: const Icon(Icons.add, size: 24),
+                      label: const Text(
+                        'Add Habit',
+                        style: TextStyle(fontSize: 20),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF547653),
+                        foregroundColor: const Color(0xFFF3EFE6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
+
   }
 }
