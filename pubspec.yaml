@@ -59,6 +59,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/habit-icons/
 
   
   # For details regarding fonts from package dependencies,

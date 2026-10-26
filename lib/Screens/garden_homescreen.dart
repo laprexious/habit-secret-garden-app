@@ -122,6 +122,7 @@ class _GardenDashboard extends StatelessWidget {
             fit: BoxFit.contain,
           ),
         ),
+        centerTitle: true,
         title: const Text('Habit Secret Garden'),
         //special code for settings icon sizing**
         actions: [
@@ -173,7 +174,12 @@ class _GardenDashboard extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 8),
-                  Text('Keep up your habits and watch your secret garden grow!'),
+                  Text(
+                    'Keep up your habits and watch your secret garden grow!',
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
                   // progress bar connexted to percent calculation
                   SizedBox(height: 12),
                   ClipRRect(
@@ -258,7 +264,7 @@ class _GardenDashboard extends StatelessWidget {
                       style: TextStyle(fontSize:18),
                       ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF547653),
+                      backgroundColor: const Color.fromARGB(255, 63, 161, 84),
                       foregroundColor: const Color(0xFFF3EFE6),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -323,7 +329,7 @@ class _GardenDashboard extends StatelessWidget {
                         style: TextStyle(fontSize: 20),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF547653),
+                        backgroundColor: Color.fromARGB(255, 63, 161, 84),
                         foregroundColor: const Color(0xFFF3EFE6),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 40,
