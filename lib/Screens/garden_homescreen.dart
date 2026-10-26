@@ -133,6 +133,22 @@ class _GardenDashboardState extends State<_GardenDashboard> {
       'checkInCounts': checkInCounts,
     };
   }
+  //PLANT PROGRESSION IMAGE CALCULATION AND THRESHOLDS
+  String _getProgressionImage(int completedCheckIns, int weeklyTarget, String iconPath) {
+    final percentage = weeklyTarget == 0
+        ? 0
+        : (completedCheckIns / weeklyTarget * 100).round();
+
+    if (percentage <= 25) {
+      return 'assets/images/sprout.png';
+    } else if (percentage <= 50) {
+      return 'assets/images/growing.png';
+    } else if (percentage <= 75) {
+      return 'assets/images/thriving.png';
+    } else {
+      return iconPath;
+    }
+  }
 
   Future<void> _addHabit() async {
     await Navigator.push(
@@ -416,7 +432,7 @@ final weeklyPercentage = (weeklyProgress * 100).round();
                                 checkInCounts[habitId] ?? 0;
                             // Card UI and details
                             return Card(
-                              color: const Color.fromARGB(195, 250, 228, 175),
+                              color: const Color.fromARGB(195, 223, 203, 158),
                               elevation: 0,
                               shadowColor: Colors.transparent,
                               shape: RoundedRectangleBorder(
@@ -447,7 +463,11 @@ final weeklyPercentage = (weeklyProgress * 100).round();
                                       style: const TextStyle(fontSize: 17),
                                     ),
                                     Image.asset(
-                                      habit['iconPath'] as String,
+                                      _getProgressionImage(
+                                        completedCheckIns,
+                                        habit['weeklyTarget'] as int,
+                                        habit['iconPath'] as String,
+                                      ),
                                       width: 104,
                                       height: 104,
                                       fit: BoxFit.contain,
