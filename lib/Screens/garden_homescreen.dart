@@ -189,12 +189,16 @@ class _GardenDashboardState extends State<_GardenDashboard> {
             .toList()
           ..sort();
 
+        //overriding favorites logic for drop-down
         final displayedHabits = _selectedFilter == 'All Habits'
             ? habits
-            : habits.where((habit) {
-                return habit['category'] == _selectedFilter;
-              }).toList();
-
+            : _selectedFilter == 'Favorites'
+                ? habits.where((habit) {
+                    return habit['isFavorite'] == 1;
+                  }).toList()
+                : habits.where((habit) {
+                    return habit['category'] == _selectedFilter;
+                  }).toList();
         final hasHabits = habits.isNotEmpty;
 
         //need to add in completion bar connection
@@ -448,13 +452,30 @@ final weeklyPercentage = (weeklyProgress * 100).round();
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     const SizedBox(height: 10),
-                                    Text(
-                                      habit['name'] as String,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            habit['name'] as String,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        if (habit['isFavorite'] == 1) ...[
+                                          const SizedBox(width: 18),
+                                          Image.asset(
+                                            'assets/images/favorite-star.png',
+                                            width: 28,
+                                            height: 28,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                     const SizedBox(height: 4),
                                     Text(

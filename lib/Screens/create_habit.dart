@@ -14,6 +14,7 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
   String? _customCategoryName;
   String? _selectedIcon;
   int? _weeklyTarget;
+  bool _isFavorite = false;
 
 final TextEditingController _habitNameController = TextEditingController();
 final TextEditingController _motivationController = TextEditingController();
@@ -73,6 +74,7 @@ final List<String> _habitIcons = [
         'weeklyTarget': weeklyTarget,
         'motivationNote':
             motivationNote.isEmpty ? null : motivationNote,
+        'isFavorite': _isFavorite ? 1 : 0,
       });
 
       if (!mounted) return;
@@ -330,6 +332,27 @@ final List<String> _habitIcons = [
                   ),
                 );
               }),
+            ),
+            //FAVORITE HABIT TOGGLE 
+            const SizedBox(height: 16),
+
+            SwitchListTile(
+              title: const Text(
+                'Add to Favorites',
+                style: TextStyle(fontSize: 20),
+              ),
+              secondary: Image.asset(
+                'assets/images/favorite-star.png',
+                width: 40,
+                height: 40,
+              ),
+              value: _isFavorite,
+              activeColor: const Color(0xFF547653),
+              onChanged: (bool value) {
+                setState(() {
+                  _isFavorite = value;
+                });
+              },
             ),
             // GARDEN GUIDE SUGGESTION
             const SizedBox(height: 28),
