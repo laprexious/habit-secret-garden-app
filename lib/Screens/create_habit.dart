@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import '../database/habit_database.dart';
 
 class CreateHabitScreen extends StatefulWidget {
   const CreateHabitScreen({super.key});
@@ -14,28 +15,77 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
   String? _selectedIcon;
   int? _weeklyTarget;
 
-  //PRESET ICON SETTINGS FOR PRESET CATEGORIES
-    final Map<String, String> _categoryIcons = {
-      'Health': 'assets/images/habit_icons/health-icon.png',
-      'Personal Growth':
-          'assets/images/habit_icons/personal-growth-icon.png',
-      'Productivity': 'assets/images/habit_icons/productivity-icon.png',
-    };
+final TextEditingController _habitNameController = TextEditingController();
+final TextEditingController _motivationController = TextEditingController();
+
+    //PRESET ICON SETTINGS FOR PRESET CATEGORIES
+final Map<String, String> _categoryIcons = {
+  'Health': 'assets/images/habit_icons/health-icon.png',
+  'Personal Growth':
+      'assets/images/habit_icons/personal-growth-icon.png',
+  'Productivity': 'assets/images/habit_icons/productivity-icon.png',
+};
     //DISPLAY ICON CHOICES AVAILABLE TO USER//
 
-    final List<String> _habitIcons = [
-      'assets/images/habit-icons/academic-icon.png',
-      'assets/images/habit-icons/bee-icon.png',
-      'assets/images/habit-icons/butterfly-icon.png',
-      'assets/images/habit-icons/clover-icon.png',
-      'assets/images/habit-icons/fitness-icon.png',
-      'assets/images/habit-icons/flowers-icon.png',
-      'assets/images/habit-icons/mushroom-icon.png',
-      'assets/images/habit-icons/self-care-icon.png',
-      'assets/images/habit-icons/snail-icon.png',
-      'assets/images/habit-icons/study-icon.png',
-      'assets/images/habit-icons/watering-icon.png',
-    ];
+final List<String> _habitIcons = [
+  'assets/images/habit-icons/academic-icon.png',
+  'assets/images/habit-icons/bee-icon.png',
+  'assets/images/habit-icons/butterfly-icon.png',
+  'assets/images/habit-icons/clover-icon.png',
+  'assets/images/habit-icons/fitness-icon.png',
+  'assets/images/habit-icons/flowers-icon.png',
+  'assets/images/habit-icons/mushroom-icon.png',
+  'assets/images/habit-icons/self-care-icon.png',
+  'assets/images/habit-icons/snail-icon.png',
+  'assets/images/habit-icons/study-icon.png',
+  'assets/images/habit-icons/watering-icon.png',
+];
+//SQL LOGIC TO SAVE HABIT
+
+  Future<void> _saveHabit() async {
+    final habitName = _habitNameController.text.trim();
+    final category = _selectedCategory == 'Other'
+        ? _customCategoryName?.trim()
+        : _selectedCategory;
+    final iconPath = _selectedIcon;
+    final weeklyTarget = _weeklyTarget;
+    final motivationNote = _motivationController.text.trim();
+
+    if (habitName.isEmpty ||
+        category == null ||
+        category.isEmpty ||
+        iconPath == null ||
+        weeklyTarget == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please complete all required fields.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await HabitDatabase.instance.insertHabit({
+        'name': habitName,
+        'category': category,
+        'iconPath': iconPath,
+        'weeklyTarget': weeklyTarget,
+        'motivationNote':
+            motivationNote.isEmpty ? null : motivationNote,
+      });
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Save failed: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,6 +123,7 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
+              controller: _habitNameController,
               decoration: InputDecoration(
                 hintText: 'e.g. Read for 20 minutes',
                 border: OutlineInputBorder(
@@ -352,6 +403,8 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
             ),
             const SizedBox(height: 8),
             TextFormField(
+              //CONTROLLER SAVES MOTIVATION WHEN USER ADD STORAGE
+              controller: _motivationController,
               maxLines: 3,
               decoration: InputDecoration(
                 hintText: 'Write your motivation here...',
@@ -359,9 +412,6 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onChanged: (value) {
-                // Motivation will be saved when we add habit storage.
-              },
             ),
           ],
         ),
@@ -397,7 +447,7 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: _saveHabit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
