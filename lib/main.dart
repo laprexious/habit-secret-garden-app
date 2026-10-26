@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
           seedColor: const Color.fromARGB(255, 23, 88, 48),
           brightness: Brightness.light,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF3EFE6),
+        scaffoldBackgroundColor: const Color.fromARGB(255, 240, 232, 213),
         textTheme: ThemeData.light().textTheme.apply(fontSizeFactor: 1),
       ),
       home: const GardenHomeScreen()

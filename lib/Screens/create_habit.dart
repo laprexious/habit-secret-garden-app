@@ -20,10 +20,10 @@ final TextEditingController _motivationController = TextEditingController();
 
     //PRESET ICON SETTINGS FOR PRESET CATEGORIES
 final Map<String, String> _categoryIcons = {
-  'Health': 'assets/images/habit_icons/health-icon.png',
+  'Health': 'assets/images/habit-icons/health-icon.png',
   'Personal Growth':
-      'assets/images/habit_icons/personal-growth-icon.png',
-  'Productivity': 'assets/images/habit_icons/productivity-icon.png',
+      'assets/images/habit-icons/personal-growth-icon.png',
+  'Productivity': 'assets/images/habit-icons/productivity-icon.png',
 };
     //DISPLAY ICON CHOICES AVAILABLE TO USER//
 
@@ -50,6 +50,7 @@ final List<String> _habitIcons = [
     final iconPath = _selectedIcon;
     final weeklyTarget = _weeklyTarget;
     final motivationNote = _motivationController.text.trim();
+    debugPrint('Selected habit icon path: $iconPath');
 
     if (habitName.isEmpty ||
         category == null ||
@@ -90,7 +91,7 @@ final List<String> _habitIcons = [
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3EFE6),
+        backgroundColor: const Color.fromARGB(255, 240, 232, 213),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
