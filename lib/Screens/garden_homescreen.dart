@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
 import 'create_habit.dart';
+import 'habit_details.dart';
 import '../database/habit_database.dart';
 
 class GardenHomeScreen extends StatefulWidget {
@@ -263,7 +264,6 @@ final weeklyPercentage = (weeklyProgress * 100).round();
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Weekly completion widget
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -352,7 +352,7 @@ final weeklyPercentage = (weeklyProgress * 100).round();
                       Expanded(
                         flex: 3,
                         child: DropdownButtonFormField<String>(
-                          value: _selectedFilter,
+                          initialValue: _selectedFilter,
                           style: const TextStyle(
                             fontSize: 18,
                             color: Colors.black,
@@ -435,86 +435,108 @@ final weeklyPercentage = (weeklyProgress * 100).round();
                             final completedCheckIns =
                                 checkInCounts[habitId] ?? 0;
                             // Card UI and details
-                            return Card(
-                              color: const Color.fromARGB(195, 223, 203, 158),
-                              elevation: 0,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: const BorderSide(
-                                  color: Color.fromARGB(255, 57, 112, 59),
-                                  width: 0.8,
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              // syncing this widget to pause until returning habit details
+                              // reload the habits to update check in count
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => HabitDetailsScreen(
+                                      habit: habit,
+                                    ),
+                                  ),
+                                );
+
+                                if (!mounted) return;
+
+                                setState(() {
+                                  _loadHabits();
+                                });
+                              },
+                              child: Card(
+                                color: const Color.fromARGB(175, 231, 211, 163),
+                                elevation: 0,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: const BorderSide(
+                                    color: Color.fromARGB(255, 57, 112, 59),
+                                    width: 0.8,
+                                  ),
                                 ),
-                              ),
-                              child: Padding(
-                                padding: EdgeInsets.zero,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            habit['name'] as String,
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              fontSize: 26,
-                                              fontWeight: FontWeight.w600,
+                                child: Padding(
+                                  padding: EdgeInsets.zero,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const SizedBox(height: 10),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              habit['name'] as String,
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                fontSize: 26,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        if (habit['isFavorite'] == 1) ...[
-                                          const SizedBox(width: 18),
-                                          Image.asset(
-                                            'assets/images/favorite-star.png',
-                                            width: 28,
-                                            height: 28,
-                                            fit: BoxFit.contain,
-                                          ),
+                                          if (habit['isFavorite'] == 1) ...[
+                                            const SizedBox(width: 18),
+                                            Image.asset(
+                                              'assets/images/favorite-star.png',
+                                              width: 28,
+                                              height: 28,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ],
                                         ],
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '$completedCheckIns/${habit['weeklyTarget']}',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 17),
-                                    ),
-                                    Image.asset(
-                                      _getProgressionImage(
-                                        completedCheckIns,
-                                        habit['weeklyTarget'] as int,
-                                        habit['iconPath'] as String,
                                       ),
-                                      width: 104,
-                                      height: 104,
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ],
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '$completedCheckIns/${habit['weeklyTarget']}',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 17),
+                                      ),
+                                      Image.asset(
+                                        _getProgressionImage(
+                                          completedCheckIns,
+                                          habit['weeklyTarget'] as int,
+                                          habit['iconPath'] as String,
+                                        ),
+                                        width: 104,
+                                        height: 104,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
                           },
                         )
+
                       //EDGE CASE: EMPTY GARDEN
                       : Column(
                           children: [
                             const Spacer(),
                             Image.asset(
                               'assets/images/empty-garden.png',
-                              width: 260,
-                              height: 220,
+                              width: 120,
+                              height: 120,
                               fit: BoxFit.contain,
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 8),
                             const Text(
                               'Your garden is empty!',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: 22,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
