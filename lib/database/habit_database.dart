@@ -127,4 +127,18 @@ class HabitDatabase {
 
     return '$year-$month-$day';
   }
+  
+  Future<List<String>> getCheckInDatesForHabit(int habitId) async {
+    final db = await instance.database;
+
+    final results = await db.query(
+      'check_ins',
+      columns: ['checkInDate'],
+      where: 'habitId = ?',
+      whereArgs: [habitId],
+    );
+
+    return results.map((row) => row['checkInDate'] as String).toList();
+  }
+
 }
