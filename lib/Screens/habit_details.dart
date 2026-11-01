@@ -82,6 +82,7 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
   late Future<List<String>> _checkInDatesFuture;
   late Map<String, dynamic> _habit;
   Map<String, dynamic>? _gardenGuideSuggestion;
+  String? _gardenGuideChoice;
 
   @override
   void initState() {
@@ -115,6 +116,46 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
 
     setState(() {
       _gardenGuideSuggestion = suggestion;
+    });
+  }
+  // method allows user to apply ai helper 
+  Future<void> _applyGardenGuideSuggestion() async {
+    final suggestion =
+        _gardenGuideSuggestion!['suggestedTarget'] as int;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Apply Garden Guide Suggestion?'),
+        content: Text(
+          'Would you like to update your weekly target to $suggestion?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await HabitDatabase.instance.updateHabit(
+      _habit['id'] as int,
+      {'weeklyTarget': suggestion},
+    );
+    if (!mounted) return;
+    setState(() {
+      _habit = {
+        ..._habit,
+        'weeklyTarget': suggestion,
+      };
+      _checkInFuture =
+          HabitDatabase.instance.getWeeklyCheckInCounts();
+      _gardenGuideChoice = 'applied';
     });
   }
 // Garden Guide card
@@ -167,10 +208,39 @@ Widget _gardenGuideCard() {
           const Text(
             'This is a simple history-based suggestion, not a prediction.',
           ),
-        ],
-      ),
-    );
-  }
+          const SizedBox(height: 12),
+          if (_gardenGuideChoice == null)
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _applyGardenGuideSuggestion,
+                    child: const Text('Apply Suggestion'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() {
+                        _gardenGuideChoice = 'kept';
+                      });
+                    },
+                    child: const Text('Keep My Target'),
+                  ),
+                ),
+              ],
+            )
+          else
+            Text(
+              _gardenGuideChoice == 'applied'
+                  ? 'Your weekly target has been updated to $suggestion.'
+                  : 'Your current weekly target of ${_habit['weeklyTarget']} remains unchanged.',
+            ),
+                  ],
+                ),
+              );
+            }
   @override
   Widget build(BuildContext context) {
     final habit = _habit;
