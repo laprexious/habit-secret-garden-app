@@ -209,8 +209,36 @@ class HabitDatabase {
 
     return result.map((row) => row['checkInDate'] as String).toList();
   }
+  
+  //HISTORY SCREEN LOGIC:
+    // get recent check-ins for history screen
+  Future<List<Map<String, dynamic>>> getRecentCheckIns() async {
+    final db = await instance.database;
+    // joined tabked by habit Id and order check ins from newest to oldest:
+    return await db.rawQuery('''
+      SELECT
+        check_ins.id AS id,
+        check_ins.habitId AS habitId,
+        check_ins.checkInDate AS checkInDate,
+        habits.name AS habitName
+      FROM check_ins
+      INNER JOIN habits ON check_ins.habitId = habits.id
+      ORDER BY check_ins.checkInDate DESC, check_ins.id DESC
+    ''');
+  }
 
+  // delete check in
+  Future<int> deleteCheckIn(int id) async {
+    final db = await instance.database;
+    // deletes selected [id] check-in
+    return await db.delete(
+      'check_ins',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
+
 }
