@@ -12,6 +12,7 @@ class HistoryScreen extends StatefulWidget {
 // screen main build 
 class _HistoryScreenState extends State<HistoryScreen> {
     late Future<Map<String, dynamic>> _historyFuture;
+    final ScrollController _scrollController = ScrollController();
     @override
     void initState() {
       super.initState();
@@ -35,9 +36,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
         leading: Padding(
           padding: const EdgeInsets.all(4),
           child: Image.asset(
@@ -90,7 +88,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Weekly Completion card card UI (modeled using homescreen)
+                // Weekly Completion card card UI and % (modeled using homescreen)
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -131,6 +129,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             ),
                           ),
                           const SizedBox(width: 16),
+                          // smooth animation for bar progress
                           Expanded(
                             child: TweenAnimationBuilder<double>(
                               tween: Tween<double>(
@@ -153,6 +152,75 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ],
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Recent Check-ins',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                // set box size for scrolling and view of insights 
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 250,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 236, 235, 232),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFD5CEC1),
+                        width: 3,
+                      ),
+                    ),
+                    // edge case:
+                    child: checkIns.isEmpty
+                      ? const Center(
+                          child: Text('No check-ins yet.'),
+                        )
+                        // visual scroll to help user interaction
+                      : Scrollbar(
+                          thumbVisibility: true,
+                          controller: _scrollController,
+                          child: ListView.builder(
+                            itemCount: checkIns.length,
+                            itemBuilder: (context, index) {
+                              final checkIn = checkIns[index];
+                              // list card ui
+                              return Card(
+                                color: const Color(0xFFE2D9C9),
+                                child: ListTile(
+                                  leading: Image.asset('assets/images/filled-leaf.png'),
+                                  title: Text(
+                                    checkIn['checkInDate'],
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: Image.asset('assets/images/edit-icon.png'),
+                                        // edit button logic to change date
+                                        onPressed: () {},
+                                      ),
+                                      IconButton(
+                                        icon: Image.asset('assets/images/delete-icon.png'),
+                                        // delete button logic to delete from history
+                                        onPressed: () {},
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                   ),
                 ),
               ],
