@@ -503,15 +503,27 @@ final weeklyPercentage = (weeklyProgress * 100).round();
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(fontSize: 17),
                                       ),
-                                      Image.asset(
-                                        _getProgressionImage(
-                                          completedCheckIns,
-                                          habit['weeklyTarget'] as int,
-                                          habit['iconPath'] as String,
+                                      if (habit['status'] == 'finished')
+                                        const Text(
+                                          'Completed',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF547653),
+                                          ),
                                         ),
-                                        width: 104,
-                                        height: 104,
-                                        fit: BoxFit.contain,
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: Image.asset(
+                                            _getProgressionImage(
+                                              completedCheckIns,
+                                              habit['weeklyTarget'] as int,
+                                              habit['iconPath'] as String,
+                                            ),
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),

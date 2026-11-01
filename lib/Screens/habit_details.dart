@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import '../database/habit_database.dart';
+import 'create_habit.dart';
 
 class HabitDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> habit;
@@ -17,10 +18,12 @@ class HabitDetailsScreen extends StatefulWidget {
 class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
   late Future<Map<int, int>> _checkInFuture;
   late Future<List<String>> _checkInDatesFuture;
+  late Map<String, dynamic> _habit;
 
   @override
   void initState() {
     super.initState();
+    _habit = Map<String, dynamic>.from(widget.habit);
     _checkInFuture = HabitDatabase.instance.getWeeklyCheckInCounts();
     _checkInDatesFuture =
         HabitDatabase.instance.getCheckInDatesForHabit(
@@ -30,7 +33,7 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final habit = widget.habit;
+    final habit = _habit;
     final weeklyTarget = habit['weeklyTarget'] as int;
 
     return Scaffold(
@@ -56,7 +59,30 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: OutlinedButton(
-              onPressed: () {},
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreateHabitScreen(
+                      habit: habit,
+                    ),
+                  ),
+                );
+
+                if (!mounted) return;
+
+                if (result == true) {
+                  setState(() {
+                    _checkInFuture =
+                        HabitDatabase.instance.getWeeklyCheckInCounts();
+
+                    _checkInDatesFuture =
+                        HabitDatabase.instance.getCheckInDatesForHabit(
+                      habit['id'] as int,
+                    );
+                  });
+                }
+              },
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF4A8683),
                 side: const BorderSide(
@@ -114,14 +140,20 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      habit['iconPath'] as String,
-                      width: 76,
-                      height: 76,
-                      fit: BoxFit.contain,
+                    // fit image to box instead of hard code
+                    Flexible(
+                      flex: 1,
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: Image.asset(
+                          habit['iconPath'] as String,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 18),
                     Expanded(
+                      flex: 3,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -213,7 +245,7 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
                     ],
                   ),
                 ),
-
+                // checkin/ start button plus logic 
                 const SizedBox(height: 24),
                 const Text(
                   'Check in for today?',
@@ -227,33 +259,47 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
                 SizedBox(
                   width: 200,
                   height: 60,
+                  //button logic to switch from start to check in
                   child: ElevatedButton(
                     onPressed: () async {
-                      final result = await HabitDatabase.instance.addCheckIn(
-                        habit['id'] as int,
-                        DateTime.now(),
-                      );
-
+                      if (habit['status'] == 'notStarted') {
+                        final startDate =
+                            DateTime.now().toIso8601String().split('T')[0];
+                        await HabitDatabase.instance.updateHabitStatus(
+                          habit['id'] as int,
+                          'active',
+                          startDate,
+                        );
+                      } else if (habit['status'] == 'active') {
+                        final result = await HabitDatabase.instance.addCheckIn(
+                          habit['id'] as int,
+                          DateTime.now(),
+                        );
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              result == 0
+                                  ? 'Already checked in today!'
+                                  : 'Check-in saved!',
+                            ),
+                          ),
+                        );
+                      }
                       if (!mounted) return;
+                      final updatedHabits = await HabitDatabase.instance.getHabits();
+                      final currentHabit = updatedHabits.firstWhere(
+                        (item) => item['id'] == habit['id'],
+                      );
                       setState(() {
-                        _checkInFuture = HabitDatabase.instance.getWeeklyCheckInCounts();
+                        _habit = currentHabit;
+                        _checkInFuture =
+                            HabitDatabase.instance.getWeeklyCheckInCounts();
                         _checkInDatesFuture =
                             HabitDatabase.instance.getCheckInDatesForHabit(
                           habit['id'] as int,
                         );
                       });
-
-                      if (!context.mounted) return;
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            result == 0
-                                ? 'Already checked in today!'
-                                : 'Check-in saved!',
-                          ),
-                        ),
-                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
@@ -266,9 +312,13 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Check In',
-                      style: TextStyle(
+                    child: Text(
+                      habit['status'] == 'notStarted'
+                          ? 'Start Habit'
+                          : habit['status'] == 'finished'
+                              ? 'Finished'
+                              : 'Check In Today',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -281,7 +331,16 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () async {
+                          await HabitDatabase.instance.updateHabitStatus(
+                            habit['id'] as int,
+                            'finished',
+                            habit['startedLocalDate'] as String?,
+                          );
+
+                          if (!mounted) return;
+                          Navigator.pop(context, true);
+                        },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.black,
                           side: const BorderSide(color: Colors.black),
@@ -304,36 +363,89 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
                         ),
                       ),
                     ),
+                    // RESET BUTTON
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.black,
-                          side: const BorderSide(color: Colors.black),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Expanded(
+                        child: OutlinedButton(
+                          // reset logic
+                          onPressed: () async {
+                            await HabitDatabase.instance.updateHabitStatus(
+                              habit['id'] as int,
+                              'notStarted',
+                              null,
+                            );
+                            if (!mounted) return;
+                            setState(() {
+                              _habit = {
+                                ...habit,
+                                'status': 'notStarted',
+                                'startedLocalDate': null,
+                              };
+                              _checkInFuture =
+                                  HabitDatabase.instance.getWeeklyCheckInCounts();
+                              _checkInDatesFuture =
+                                  HabitDatabase.instance.getCheckInDatesForHabit(
+                                habit['id'] as int,
+                              );
+                            });
+                          },
+                          // button UI
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            side: const BorderSide(color: Colors.black),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                'assets/images/reset-button.png',
+                                width: 36,
+                                height: 36,
+                              ),
+                              const SizedBox(height: 8),
+                              const Text('Reset'),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.asset(
-                              'assets/images/reset-button.png',
-                              width: 36,
-                              height: 36,
-                            ),
-                            const SizedBox(height: 8),
-                            const Text('Reset'),
-                          ],
-                        ),
                       ),
-                    ),
+                    // DELETE BUTTON 
                     const SizedBox(width: 8),
+                    // adding in logic for delete button
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () async {
+                          final confirmDelete = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete Habit?'),
+                              content: const Text(
+                                'Are you sure you want to delete this habit? '
+                                'Its check-in history will also be deleted.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          //deletion accros cascade
+                          if (confirmDelete != true || !mounted) return;
+                          await HabitDatabase.instance.deleteHabit(
+                            habit['id'] as int,
+                          );
+                          if (!mounted) return;
+                          Navigator.pop(context, true);
+                        },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.black,
                           side: const BorderSide(color: Colors.black),

@@ -21,7 +21,7 @@ class HabitDatabase {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -33,6 +33,15 @@ class HabitDatabase {
         if (oldVersion < 3) {
           await db.execute(
             'ALTER TABLE habits ADD COLUMN isFavorite INTEGER NOT NULL DEFAULT 0',
+          );
+        }
+        if (oldVersion < 4) {
+          await db.execute(
+            "ALTER TABLE habits ADD COLUMN status TEXT NOT NULL DEFAULT 'notStarted'",
+          );
+
+          await db.execute(
+            'ALTER TABLE habits ADD COLUMN startedLocalDate TEXT',
           );
         }
       },
@@ -47,13 +56,15 @@ class HabitDatabase {
         iconPath TEXT NOT NULL,
         weeklyTarget INTEGER NOT NULL,
         motivationNote TEXT,
-        isFavorite INTEGER NOT NULL DEFAULT 0
+        isFavorite INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'notStarted',
+        startedLocalDate TEXT
       )
     ''');
 
     await _createCheckInsTable(db);
   }
-
+// delete cascade ensures deletion deketes all associated check ins**
   Future<void> _createCheckInsTable(Database db) async {
     await db.execute('''
       CREATE TABLE check_ins (
@@ -66,79 +77,140 @@ class HabitDatabase {
       )
     ''');
   }
-
+// habit insertion logic
   Future<int> insertHabit(Map<String, dynamic> habit) async {
     final db = await instance.database;
     return await db.insert('habits', habit);
   }
+  // update row matching habit id 
+  Future<int> updateHabit(int id, Map<String, dynamic> habit) async {
+    final db = await instance.database;
+
+    return await db.update(
+      'habits',
+      habit,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+  //input habit status for start implementation
+  Future<int> updateHabitStatus(
+    int id,
+    String status,
+    String? startedLocalDate,
+  ) async {
+    final db = await instance.database;
+
+    return await db.update(
+      'habits',
+      {
+        'status': status,
+        'startedLocalDate': startedLocalDate,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+  // delete habit from creation screen
+    Future<int> deleteHabit(int id) async {
+      final db = await instance.database;
+
+      return await db.delete(
+        'habits',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
 
   Future<List<Map<String, dynamic>>> getHabits() async {
     final db = await instance.database;
     return await db.query('habits', orderBy: 'id DESC');
   }
-
+//logic to fill in check in according to date
   Future<int> addCheckIn(int habitId, DateTime date) async {
     final db = await instance.database;
     final checkInDate = _formatDate(date);
 
-    return await db.insert(
-      'check_ins',
-      {
-        'habitId': habitId,
-        'checkInDate': checkInDate,
-      },
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
-  }
+    return await db.transaction((txn) async {
+      final existing = await txn.query(
+        'check_ins',
+        where: 'habitId = ? AND checkInDate = ?',
+        whereArgs: [habitId, checkInDate],
+      );
 
+      if (existing.isNotEmpty) {
+        return 0;
+      }
+
+      await txn.insert(
+        'check_ins',
+        {
+          'habitId': habitId,
+          'checkInDate': checkInDate,
+        },
+      );
+
+      return 1;
+    });
+  }
+//compile check in counts for summary
   Future<Map<int, int>> getWeeklyCheckInCounts() async {
     final db = await instance.database;
-    final today = DateTime.now();
-    final weekStart = DateTime(
-      today.year,
-      today.month,
-      today.day,
-    ).subtract(Duration(days: today.weekday - 1));
-    final weekEnd = weekStart.add(const Duration(days: 7));
 
-    final results = await db.rawQuery(
-      '''
-      SELECT habitId, COUNT(*) AS completed
-      FROM check_ins
-      WHERE checkInDate >= ? AND checkInDate < ?
-      GROUP BY habitId
-      ''',
-      [
-        _formatDate(weekStart),
-        _formatDate(weekEnd),
-      ],
-    );
+    final today = DateTime.now();
+    final startOfWeek =
+        today.subtract(Duration(days: today.weekday - 1));
+    final startDate = _formatDate(startOfWeek);
+    final endDate = _formatDate(startOfWeek.add(const Duration(days: 7)));
+
+    final result = await db.rawQuery('''
+      SELECT
+        habits.id AS habitId,
+        CASE
+          WHEN habits.status = 'finished' THEN habits.weeklyTarget
+          ELSE COUNT(check_ins.id)
+        END AS completed
+      FROM habits
+      LEFT JOIN check_ins
+        ON check_ins.habitId = habits.id
+        AND check_ins.checkInDate >= ?
+        AND check_ins.checkInDate < ?
+        AND check_ins.checkInDate >= habits.startedLocalDate
+      GROUP BY habits.id
+    ''', [startDate, endDate]);
 
     return {
-      for (final row in results)
+      for (final row in result)
         row['habitId'] as int: row['completed'] as int,
     };
   }
-
-  String _formatDate(DateTime date) {
-    final year = date.year.toString().padLeft(4, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    return '$year-$month-$day';
-  }
-  
-  Future<List<String>> getCheckInDatesForHabit(int habitId) async {
+    Future<List<String>> getCheckInDatesForHabit(int habitId) async {
     final db = await instance.database;
 
-    final results = await db.query(
-      'check_ins',
-      columns: ['checkInDate'],
-      where: 'habitId = ?',
+    final habit = await db.query(
+      'habits',
+      columns: ['startedLocalDate'],
+      where: 'id = ?',
       whereArgs: [habitId],
     );
 
-    return results.map((row) => row['checkInDate'] as String).toList();
+    if (habit.isEmpty || habit.first['startedLocalDate'] == null) {
+      return [];
+    }
+
+    final startDate = habit.first['startedLocalDate'] as String;
+
+    final result = await db.query(
+      'check_ins',
+      columns: ['checkInDate'],
+      where: 'habitId = ? AND checkInDate >= ?',
+      whereArgs: [habitId, startDate],
+    );
+
+    return result.map((row) => row['checkInDate'] as String).toList();
   }
 
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
 }

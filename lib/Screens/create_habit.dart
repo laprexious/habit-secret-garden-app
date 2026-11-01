@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import '../database/habit_database.dart';
 
 class CreateHabitScreen extends StatefulWidget {
-  const CreateHabitScreen({super.key});
+  final Map<String, dynamic>? habit;
+
+  const CreateHabitScreen({
+    super.key,
+    this.habit,
+  });
 
   @override
   State<CreateHabitScreen> createState() => _CreateHabitScreenState();
@@ -18,7 +23,33 @@ class _CreateHabitScreenState extends State<CreateHabitScreen> {
 
 final TextEditingController _habitNameController = TextEditingController();
 final TextEditingController _motivationController = TextEditingController();
+final TextEditingController _customCategoryController =
+    TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.habit != null) {
+      final habit = widget.habit!;
+
+      _habitNameController.text = habit['name'];
+      _motivationController.text = habit['motivationNote'] ?? '';
+      _selectedIcon = habit['iconPath'];
+      _weeklyTarget = habit['weeklyTarget'];
+      _isFavorite = habit['isFavorite'] == 1;
+
+      final category = habit['category'];
+
+      if (_categoryIcons.containsKey(category)) {
+        _selectedCategory = category;
+      } else {
+        _selectedCategory = 'Other';
+        _customCategoryName = category;
+        _customCategoryController.text = category;
+      }
+    }
+  }
     //PRESET ICON SETTINGS FOR PRESET CATEGORIES
 final Map<String, String> _categoryIcons = {
   'Health': 'assets/images/habit-icons/health-icon.png',
@@ -41,54 +72,58 @@ final List<String> _habitIcons = [
   'assets/images/habit-icons/study-icon.png',
   'assets/images/habit-icons/watering-icon.png',
 ];
-//SQL LOGIC TO SAVE HABIT
+//updated sql logic for create new/ edit habit
+    Future<void> _saveHabit() async {
+      final habitName = _habitNameController.text.trim();
+      final category = _selectedCategory == 'Other'
+          ? _customCategoryName?.trim()
+          : _selectedCategory;
+      final iconPath = _selectedIcon;
+      final weeklyTarget = _weeklyTarget;
+      final motivationNote = _motivationController.text.trim();
 
-  Future<void> _saveHabit() async {
-    final habitName = _habitNameController.text.trim();
-    final category = _selectedCategory == 'Other'
-        ? _customCategoryName?.trim()
-        : _selectedCategory;
-    final iconPath = _selectedIcon;
-    final weeklyTarget = _weeklyTarget;
-    final motivationNote = _motivationController.text.trim();
-    debugPrint('Selected habit icon path: $iconPath');
+      debugPrint('Selected habit icon path: $iconPath');
+      if (habitName.isEmpty ||
+          category == null ||
+          category.isEmpty ||
+          iconPath == null ||
+          weeklyTarget == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please complete all required fields.'),
+          ),
+        );
+        return;
+      }
 
-    if (habitName.isEmpty ||
-        category == null ||
-        category.isEmpty ||
-        iconPath == null ||
-        weeklyTarget == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please complete all required fields.'),
-        ),
-      );
-      return;
+      try {
+        final habitData = {
+          'name': habitName,
+          'category': category,
+          'iconPath': iconPath,
+          'weeklyTarget': weeklyTarget,
+          'motivationNote':
+              motivationNote.isEmpty ? null : motivationNote,
+          'isFavorite': _isFavorite ? 1 : 0,
+        };
+        if (widget.habit == null) {
+          await HabitDatabase.instance.insertHabit(habitData);
+        } else {
+          await HabitDatabase.instance.updateHabit(
+            widget.habit!['id'] as int,
+            habitData,
+          );
+        }
+        if (!mounted) return;
+        Navigator.pop(context, true);
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save failed: $e')),
+        );
+      }
     }
-
-    try {
-      await HabitDatabase.instance.insertHabit({
-        'name': habitName,
-        'category': category,
-        'iconPath': iconPath,
-        'weeklyTarget': weeklyTarget,
-        'motivationNote':
-            motivationNote.isEmpty ? null : motivationNote,
-        'isFavorite': _isFavorite ? 1 : 0,
-      });
-
-      if (!mounted) return;
-
-      Navigator.pop(context, true);
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -199,6 +234,7 @@ final List<String> _habitIcons = [
               ),
               const SizedBox(height: 8),
               TextFormField(
+                controller: _customCategoryController,
                 decoration: InputDecoration(
                   hintText: 'e.g. Gym, Finance, Self-Care, Academics',
                   border: OutlineInputBorder(
@@ -347,7 +383,7 @@ final List<String> _habitIcons = [
                 height: 40,
               ),
               value: _isFavorite,
-              activeColor: const Color(0xFF547653),
+              activeThumbColor: const Color(0xFF547653),
               onChanged: (bool value) {
                 setState(() {
                   _isFavorite = value;
