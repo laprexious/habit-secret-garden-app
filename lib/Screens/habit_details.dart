@@ -3,6 +3,68 @@ import 'package:flutter/material.dart';
 import '../database/habit_database.dart';
 import 'create_habit.dart';
 
+// REQUIRED AI HELPER:
+Map<String, dynamic>? calculateGardenGuideSuggestion({
+  required List<String> checkInDates,
+  required String startedLocalDate,
+  required DateTime asOfDate,
+}) {
+  final startedDate = DateTime.parse(startedLocalDate);
+  final currentWeekStart = DateTime(
+    asOfDate.year,
+    asOfDate.month,
+    asOfDate.day - (asOfDate.weekday - 1),
+  );
+  final firstWeekStart = DateTime(
+    currentWeekStart.year,
+    currentWeekStart.month,
+    currentWeekStart.day - 21,
+  );
+  final firstEligibleWeek = startedDate.weekday == DateTime.monday
+      ? DateTime(startedDate.year, startedDate.month, startedDate.day)
+      : DateTime(
+          startedDate.year,
+          startedDate.month,
+          startedDate.day,
+        ).subtract(Duration(days: startedDate.weekday - 1))
+          .add(const Duration(days: 7));
+
+  if (firstEligibleWeek.isAfter(firstWeekStart)) {
+    return null;
+  }
+
+  final uniqueDates = checkInDates.toSet();
+  final weekCounts = <int>[];
+
+  for (int i = 0; i < 3; i++) {
+    final weekStart = firstWeekStart.add(Duration(days: i * 7));
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    //normalize before comparison: change needed for helper
+    final count = uniqueDates.where((dateString) {
+      final date = DateTime.parse(dateString);
+      final checkInDay = DateTime(date.year, date.month, date.day);
+
+      return !checkInDay.isBefore(weekStart) &&
+          checkInDay.isBefore(weekEnd) &&
+          !checkInDay.isBefore(startedDate);
+    }).length;
+
+    if (count > 7) {
+      throw FormatException('Invalid weekly check-in count.');
+    }
+
+    weekCounts.add(count);
+  }
+
+  final average = weekCounts.reduce((a, b) => a + b) / 3;
+
+  return {
+    'weekCounts': weekCounts,
+    'average': average,
+    'suggestedTarget': average.round().clamp(1, 7),
+  };
+}
+
 class HabitDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> habit;
 
@@ -19,6 +81,7 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
   late Future<Map<int, int>> _checkInFuture;
   late Future<List<String>> _checkInDatesFuture;
   late Map<String, dynamic> _habit;
+  Map<String, dynamic>? _gardenGuideSuggestion;
 
   @override
   void initState() {
@@ -29,8 +92,85 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
         HabitDatabase.instance.getCheckInDatesForHabit(
       widget.habit['id'] as int,
     );
+    _loadGardenGuide();
+  }
+  // METHOD FOR AI HELPER: LOADS habit dates to pass to helper
+  Future<void> _loadGardenGuide() async {
+    final startedDate = _habit['startedLocalDate'];
+
+    if (startedDate == null) return;
+
+    final checkInDates =
+        await HabitDatabase.instance.getCheckInDatesForHabit(
+      _habit['id'] as int,
+    );
+
+    final suggestion = calculateGardenGuideSuggestion(
+      checkInDates: checkInDates,
+      startedLocalDate: startedDate as String,
+      asOfDate: DateTime.now(),
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _gardenGuideSuggestion = suggestion;
+    });
+  }
+// Garden Guide card
+Widget _gardenGuideCard() {
+  if (_habit['startedLocalDate'] == null) {
+    return const SizedBox.shrink();
   }
 
+  if (_gardenGuideSuggestion == null) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      child: Text(
+        'Garden Guide: Not enough history yet. Keep checking in!',
+        textAlign: TextAlign.center,
+      ),
+    );
+}
+
+    final suggestion =
+        _gardenGuideSuggestion!['suggestedTarget'] as int;
+    final counts =
+        _gardenGuideSuggestion!['weekCounts'] as List<int>;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(175, 231, 211, 163),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Garden Guide',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your last three completed weeks: '
+            '${counts[0]}, ${counts[1]}, and ${counts[2]} check-ins.',
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Based on your history, your suggested weekly target is $suggestion.',
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'This is a simple history-based suggestion, not a prediction.',
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     final habit = _habit;
@@ -525,6 +665,9 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
                     );
                   },
                 ),
+                // Garden Guide: ai helper
+                const SizedBox(height: 20),
+                _gardenGuideCard(),
               ],
             ),
           );
