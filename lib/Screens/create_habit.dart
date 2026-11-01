@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import '../database/habit_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CreateHabitScreen extends StatefulWidget {
   final Map<String, dynamic>? habit;
@@ -47,9 +48,11 @@ final TextEditingController _customCategoryController =
         _selectedCategory = 'Other';
         _customCategoryName = category;
         _customCategoryController.text = category;
+        }
+      } else {
+        _loadDefaultTarget();
       }
     }
-  }
     //PRESET ICON SETTINGS FOR PRESET CATEGORIES
 final Map<String, String> _categoryIcons = {
   'Health': 'assets/images/habit-icons/health-icon.png',
@@ -123,6 +126,16 @@ final List<String> _habitIcons = [
           SnackBar(content: Text('Save failed: $e')),
         );
       }
+    }
+    // load default weekly target from settings
+    Future<void> _loadDefaultTarget() async {
+      final prefs = await SharedPreferences.getInstance();
+
+      if (!mounted) return;
+
+      setState(() {
+        _weeklyTarget = prefs.getInt('weeklyTarget') ?? 4;
+      });
     }
   @override
   Widget build(BuildContext context) {

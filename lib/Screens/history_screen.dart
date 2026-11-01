@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../database/habit_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // initialize/ load as stateful
 class HistoryScreen extends StatefulWidget {
@@ -9,14 +10,16 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-// screen main build 
 class _HistoryScreenState extends State<HistoryScreen> {
     late Future<Map<String, dynamic>> _historyFuture;
     final ScrollController _scrollController = ScrollController();
+    bool _reduceMotion = false;
+
     @override
     void initState() {
       super.initState();
       _historyFuture = _loadHistoryData();
+      _loadMotionSetting();
     }
 // load history sql
     Future<Map<String, dynamic>> _loadHistoryData() async {
@@ -30,6 +33,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         'checkInCounts': checkInCounts,
         'checkIns': checkIns,
       };
+    }
+    // load settings preferences
+    Future<void> _loadMotionSetting() async {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      setState(() {
+        _reduceMotion = prefs.getBool('reduceMotion') ?? false;
+      });
     }
   @override
   // same initial build as first two screens: 
@@ -136,7 +147,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 begin: 0.0,
                                 end: weeklyProgress,
                               ),
-                              duration: const Duration(milliseconds: 600),
+                              duration: _reduceMotion
+                                ? Duration.zero
+                                : const Duration(milliseconds: 600),
                               builder: (context, value, child) {
                                 return LinearProgressIndicator(
                                   value: value,

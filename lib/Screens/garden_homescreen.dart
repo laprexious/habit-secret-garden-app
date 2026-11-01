@@ -5,6 +5,7 @@ import 'settings_screen.dart';
 import 'create_habit.dart';
 import 'habit_details.dart';
 import '../database/habit_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GardenHomeScreen extends StatefulWidget {
   const GardenHomeScreen({super.key});
@@ -113,11 +114,13 @@ class _GardenDashboard extends StatefulWidget {
 class _GardenDashboardState extends State<_GardenDashboard> {
   late Future<Map<String, dynamic>> _dashboardFuture;
   String _selectedFilter = 'All Habits';
+  bool _reduceMotion = false;
 
   @override
   void initState() {
     super.initState();
     _dashboardFuture = _loadDashboardData();
+    _loadMotionSetting();
   }
 
   void _loadHabits() {
@@ -163,7 +166,16 @@ class _GardenDashboardState extends State<_GardenDashboard> {
       _loadHabits();
     });
   }
+  Future<void> _loadMotionSetting() async {
+    final prefs = await SharedPreferences.getInstance();
 
+    if (!mounted) return;
+
+    setState(() {
+      _reduceMotion = prefs.getBool('reduceMotion') ?? false;
+    });
+  }
+//app build:
   //settings button on top right corner
   @override
   Widget build(BuildContext context) {
@@ -294,7 +306,10 @@ class _GardenDashboardState extends State<_GardenDashboard> {
                         borderRadius: BorderRadius.circular(10),
                         child: TweenAnimationBuilder<double>(
                           tween: Tween<double>(begin: 0.0, end: weeklyProgress),
-                          duration: const Duration(milliseconds: 600),
+                          // inserting saved motion preference
+                          duration: _reduceMotion
+                            ? Duration.zero
+                            : const Duration(milliseconds: 600),
                           builder: (context, value, child) {
                             return LayoutBuilder(
                               builder: (context, constraints) {
