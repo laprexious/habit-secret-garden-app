@@ -194,7 +194,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 child: ListTile(
                                   leading: Image.asset('assets/images/filled-leaf.png'),
                                   title: Text(
-                                    checkIn['checkInDate'],
+                                    '${checkIn['checkInDate']}\n${checkIn['habitName']}',
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       fontSize: 16,
@@ -207,12 +207,75 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       IconButton(
                                         icon: Image.asset('assets/images/edit-icon.png'),
                                         // edit button logic to change date
-                                        onPressed: () {},
+                                        onPressed: () async {
+                                          final currentDate = DateTime.parse(
+                                            checkIn['checkInDate'] as String,
+                                          );
+                                          final startOfWeek = currentDate.subtract(
+                                            Duration(days: currentDate.weekday - 1),
+                                          );
+                                          final selectedDate = await showDatePicker(
+                                            context: context,
+                                            initialDate: currentDate,
+                                            firstDate: startOfWeek,
+                                            lastDate: startOfWeek.add(const Duration(days: 6)),
+                                          );
+                                          if (selectedDate == null) return;
+                                          try {
+                                            await HabitDatabase.instance.updateCheckIn(
+                                              checkIn['id'] as int,
+                                              selectedDate,
+                                            );
+                                            if (!mounted) return;
+                                            setState(() {
+                                              _historyFuture = _loadHistoryData();
+                                            });
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'This habit may already have a check-in for that date.',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
                                       ),
                                       IconButton(
                                         icon: Image.asset('assets/images/delete-icon.png'),
-                                        // delete button logic to delete from history
-                                        onPressed: () {},
+                                        // delete button logic to delete entry
+                                        onPressed: () async {
+                                          final confirmDelete = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Delete check-in?'),
+                                              content: const Text(
+                                                'This check-in will be removed from your history.',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, false),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, true),
+                                                  child: const Text('Delete'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          //user presses delete; database updates check id references 
+                                          if (confirmDelete == true) {
+                                            await HabitDatabase.instance.deleteCheckIn(
+                                              checkIn['id'] as int,
+                                            );
+                                            if (!mounted) return;
+                                            setState(() {
+                                              _historyFuture = _loadHistoryData();
+                                            });
+                                          }
+                                        },
                                       ),
                                     ],
                                   ),
@@ -221,6 +284,79 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             },
                           ),
                         ),
+                  ),
+                ),
+                // section for insights
+                const SizedBox(height: 20),
+                const Text(
+                  'Weekly Insights',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECC1C1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Total Habit Check-ins',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Text(
+                            '$totalCompleted / $totalTarget',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Color(0xFF547653),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${(weeklyProgress * 100).round()}%',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 22,
+                              color: Color(0xFF547653),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (totalTarget > 0)
+                        Row(
+                          children: List.generate(
+                            totalTarget,
+                            (index) => Expanded(
+                              child: Container(
+                                height: 20,
+                                margin: const EdgeInsets.only(right: 3),
+                                decoration: BoxDecoration(
+                                  color: index < totalCompleted
+                                      ? const Color(0xFF547653)
+                                      : Color.fromARGB(255, 240, 232, 213),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        const Text('No weekly targets yet.'),
+                    ],
                   ),
                 ),
               ],

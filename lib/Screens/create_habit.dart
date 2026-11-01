@@ -128,10 +128,6 @@ final List<String> _habitIcons = [
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 240, 232, 213),
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
         leading: IconButton(
           icon: Image.asset(
             'assets/images/back-icon.png',

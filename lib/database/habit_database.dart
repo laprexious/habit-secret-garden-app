@@ -111,7 +111,7 @@ class HabitDatabase {
       whereArgs: [id],
     );
   }
-  // delete habit from creation screen
+  // delete habit 
     Future<int> deleteHabit(int id) async {
       final db = await instance.database;
 
@@ -137,11 +137,9 @@ class HabitDatabase {
         where: 'habitId = ? AND checkInDate = ?',
         whereArgs: [habitId, checkInDate],
       );
-
       if (existing.isNotEmpty) {
         return 0;
       }
-
       await txn.insert(
         'check_ins',
         {
@@ -149,20 +147,17 @@ class HabitDatabase {
           'checkInDate': checkInDate,
         },
       );
-
       return 1;
     });
   }
 //compile check in counts for summary
   Future<Map<int, int>> getWeeklyCheckInCounts() async {
     final db = await instance.database;
-
     final today = DateTime.now();
     final startOfWeek =
         today.subtract(Duration(days: today.weekday - 1));
     final startDate = _formatDate(startOfWeek);
     final endDate = _formatDate(startOfWeek.add(const Duration(days: 7)));
-
     final result = await db.rawQuery('''
       SELECT
         habits.id AS habitId,
@@ -186,20 +181,16 @@ class HabitDatabase {
   }
     Future<List<String>> getCheckInDatesForHabit(int habitId) async {
     final db = await instance.database;
-
     final habit = await db.query(
       'habits',
       columns: ['startedLocalDate'],
       where: 'id = ?',
       whereArgs: [habitId],
     );
-
     if (habit.isEmpty || habit.first['startedLocalDate'] == null) {
       return [];
     }
-
     final startDate = habit.first['startedLocalDate'] as String;
-
     final result = await db.query(
       'check_ins',
       columns: ['checkInDate'],
@@ -220,7 +211,8 @@ class HabitDatabase {
         check_ins.id AS id,
         check_ins.habitId AS habitId,
         check_ins.checkInDate AS checkInDate,
-        habits.name AS habitName
+        habits.name AS habitName,
+        habits.startedLocalDate AS startedLocalDate
       FROM check_ins
       INNER JOIN habits ON check_ins.habitId = habits.id
       ORDER BY check_ins.checkInDate DESC, check_ins.id DESC
@@ -237,6 +229,20 @@ class HabitDatabase {
       whereArgs: [id],
     );
   }
+  // update check in date
+Future<int> updateCheckIn(int id, DateTime date) async {
+  final db = await instance.database;
+  final checkInDate = _formatDate(date);
+  // update with new check in date selected by user
+  return await db.update(
+    'check_ins',
+    {
+      'checkInDate': checkInDate,
+    },
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }

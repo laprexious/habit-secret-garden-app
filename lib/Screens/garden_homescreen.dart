@@ -158,9 +158,7 @@ class _GardenDashboardState extends State<_GardenDashboard> {
         builder: (context) => const CreateHabitScreen(),
       ),
     );
-
     if (!mounted) return;
-
     setState(() {
       _loadHabits();
     });
@@ -218,17 +216,12 @@ class _GardenDashboardState extends State<_GardenDashboard> {
             return sum + completed.clamp(0, target);
           },
         );
-
-final weeklyProgress =
-    totalTarget == 0 ? 0.0 : totalCompleted / totalTarget;
-
-final weeklyPercentage = (weeklyProgress * 100).round();
+        final weeklyProgress =
+            totalTarget == 0 ? 0.0 : totalCompleted / totalTarget;
+        final weeklyPercentage = (weeklyProgress * 100).round();
 
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: const Color.fromARGB(255, 240, 232, 213),
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
             leading: Padding(
               padding: const EdgeInsets.all(4),
               child: Image.asset(
