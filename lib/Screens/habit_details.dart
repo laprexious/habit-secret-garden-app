@@ -5,40 +5,41 @@ import 'create_habit.dart';
 
 // REQUIRED AI HELPER:
 Map<String, dynamic>? calculateGardenGuideSuggestion({
+  // calls variables as listed object
   required List<String> checkInDates,
   required String startedLocalDate,
   required DateTime asOfDate,
 }) {
+  // calls and parses data for start date and finds the monday of that week.
   final startedDate = DateTime.parse(startedLocalDate);
+  // normalize start date to midnight:
+  final startDay = DateTime(
+    startedDate.year,
+    startedDate.month,
+    startedDate.day,
+  );
   final currentWeekStart = DateTime(
     asOfDate.year,
     asOfDate.month,
     asOfDate.day - (asOfDate.weekday - 1),
   );
-  final firstWeekStart = DateTime(
-    currentWeekStart.year,
-    currentWeekStart.month,
-    currentWeekStart.day - 21,
-  );
-  final firstEligibleWeek = startedDate.weekday == DateTime.monday
-      ? DateTime(startedDate.year, startedDate.month, startedDate.day)
-      : DateTime(
-          startedDate.year,
-          startedDate.month,
-          startedDate.day,
-        ).subtract(Duration(days: startedDate.weekday - 1))
-          .add(const Duration(days: 7));
-
-  if (firstEligibleWeek.isAfter(firstWeekStart)) {
-    return null;
-  }
 
   final uniqueDates = checkInDates.toSet();
   final weekCounts = <int>[];
+  for (int i = 3; i >= 1; i--) {    final weekStart = DateTime(
+      currentWeekStart.year,
+      currentWeekStart.month,
+      currentWeekStart.day - (i * 7),
+    );
 
-  for (int i = 0; i < 3; i++) {
-    final weekStart = firstWeekStart.add(Duration(days: i * 7));
-    final weekEnd = weekStart.add(const Duration(days: 7));
+    final weekEnd = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day + 7,
+    );
+    if (!weekEnd.isAfter(startDay)) {
+      continue;
+    }
     //normalize before comparison: change needed for helper
     final count = uniqueDates.where((dateString) {
       final date = DateTime.parse(dateString);
@@ -46,7 +47,7 @@ Map<String, dynamic>? calculateGardenGuideSuggestion({
 
       return !checkInDay.isBefore(weekStart) &&
           checkInDay.isBefore(weekEnd) &&
-          !checkInDay.isBefore(startedDate);
+          !checkInDay.isBefore(startDay);
     }).length;
 
     if (count > 7) {
@@ -55,8 +56,13 @@ Map<String, dynamic>? calculateGardenGuideSuggestion({
 
     weekCounts.add(count);
   }
+  // do not suggest if less than 2 weeks of history
+  if (weekCounts.length < 2) {
+    return null;
+  }
 
-  final average = weekCounts.reduce((a, b) => a + b) / 3;
+
+  final average = weekCounts.reduce((a, b) => a + b) / weekCounts.length;
 
   return {
     'weekCounts': weekCounts,
@@ -95,7 +101,7 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
     );
     _loadGardenGuide();
   }
-  // METHOD FOR AI HELPER: LOADS habit dates to pass to helper
+  // METHOD FOR AI HELPER: calls guide to be performed
   Future<void> _loadGardenGuide() async {
     final startedDate = _habit['startedLocalDate'];
 
@@ -118,7 +124,7 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
       _gardenGuideSuggestion = suggestion;
     });
   }
-  // method allows user to apply ai helper 
+  // method calls calculation depending on calc result
   Future<void> _applyGardenGuideSuggestion() async {
     final suggestion =
         _gardenGuideSuggestion!['suggestedTarget'] as int;
@@ -158,7 +164,7 @@ class _HabitDetailsScreenState extends State<HabitDetailsScreen> {
       _gardenGuideChoice = 'applied';
     });
   }
-// Garden Guide card
+// Garden Guide method:et build widg
 Widget _gardenGuideCard() {
   if (_habit['startedLocalDate'] == null) {
     return const SizedBox.shrink();
@@ -575,18 +581,24 @@ Widget _gardenGuideCard() {
                         child: OutlinedButton(
                           // reset logic
                           onPressed: () async {
+                            // first delete this weeks check ins
+                            await HabitDatabase.instance.deleteWeeklyCheckIns(
+                              habit['id'] as int,
+                            );
+                            // flip status to not started
                             await HabitDatabase.instance.updateHabitStatus(
                               habit['id'] as int,
                               'notStarted',
-                              null,
+                              habit['startedLocalDate'] as String?,
                             );
+
                             if (!mounted) return;
                             setState(() {
                               _habit = {
                                 ...habit,
                                 'status': 'notStarted',
-                                'startedLocalDate': null,
                               };
+                              // update new future instance with methods
                               _checkInFuture =
                                   HabitDatabase.instance.getWeeklyCheckInCounts();
                               _checkInDatesFuture =
@@ -594,6 +606,8 @@ Widget _gardenGuideCard() {
                                 habit['id'] as int,
                               );
                             });
+                            // load widget suggestion post calculations:
+                            _loadGardenGuide();
                           },
                           // button UI
                           style: OutlinedButton.styleFrom(
