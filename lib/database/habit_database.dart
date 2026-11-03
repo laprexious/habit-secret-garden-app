@@ -229,6 +229,20 @@ class HabitDatabase {
       whereArgs: [id],
     );
   }
+  // reset method to delete check ins for the week and reset habit
+  // deletes from m-s
+  Future<int> deleteWeeklyCheckIns(int habitId) async {
+    final db = await instance.database;
+    final today = DateTime.now();
+    final monday = DateTime(today.year, today.month, today.day - today.weekday + 1);
+    final nextMonday = monday.add(const Duration(days: 7));
+
+    return db.delete(
+      'check_ins',
+      where: 'habitId = ? AND checkInDate >= ? AND checkInDate < ?',
+      whereArgs: [habitId, _formatDate(monday), _formatDate(nextMonday)],
+    );
+  }
   // update check in date
 Future<int> updateCheckIn(int id, DateTime date) async {
   final db = await instance.database;

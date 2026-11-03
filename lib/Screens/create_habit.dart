@@ -85,7 +85,6 @@ final List<String> _habitIcons = [
       final weeklyTarget = _weeklyTarget;
       final motivationNote = _motivationController.text.trim();
 
-      debugPrint('Selected habit icon path: $iconPath');
       if (habitName.isEmpty ||
           category == null ||
           category.isEmpty ||
@@ -402,7 +401,7 @@ final List<String> _habitIcons = [
             // GARDEN GUIDE SUGGESTION
             const SizedBox(height: 28),
             const Text(
-              'Garden Guide Suggestion',
+              'Garden Suggestion',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w400,
